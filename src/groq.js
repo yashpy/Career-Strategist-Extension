@@ -1,20 +1,25 @@
-// Minimal Groq client (OpenAI-compatible API).
+// OpenAI-compatible LLM client. Works with any provider that exposes the
+// /chat/completions and /models endpoints (Groq, Google Gemini, Cerebras,
+// OpenRouter, Ollama, OpenAI, ...). The base URL is configurable in settings.
 
-const BASE_URL = "https://api.groq.com/openai/v1";
+export const DEFAULT_BASE_URL = "https://api.groq.com/openai/v1";
 
-export async function listModels(apiKey) {
-  const res = await fetch(`${BASE_URL}/models`, {
+const trim = (u) => (u || DEFAULT_BASE_URL).replace(/\/+$/, "");
+
+export async function listModels(apiKey, baseUrl = DEFAULT_BASE_URL) {
+  const res = await fetch(`${trim(baseUrl)}/models`, {
     headers: { Authorization: `Bearer ${apiKey}` },
   });
   if (!res.ok) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`Groq /models failed (${res.status}): ${txt}`);
+    throw new Error(`/models failed (${res.status}): ${txt}`);
   }
   const data = await res.json();
-  // Return chat-capable models, newest-ish first. Groq returns {data:[{id,...}]}.
   return (data.data || [])
     .map((m) => m.id)
-    .filter((id) => !/whisper|tts|guard|embedding/i.test(id))
+    // Gemini prefixes ids with "models/"; strip for display/use.
+    .map((id) => id.replace(/^models\//, ""))
+    .filter((id) => !/whisper|tts|guard|embedding|aqa|imagen|veo/i.test(id))
     .sort();
 }
 
@@ -22,8 +27,17 @@ export async function listModels(apiKey) {
  * Stream a chat completion. Calls onDelta(text) for each chunk.
  * Returns the full accumulated text.
  */
-export async function streamChat({ apiKey, model, messages, temperature = 0.4, maxTokens = 32768, signal, onDelta }) {
-  const res = await fetch(`${BASE_URL}/chat/completions`, {
+export async function streamChat({
+  apiKey,
+  baseUrl = DEFAULT_BASE_URL,
+  model,
+  messages,
+  temperature = 0.4,
+  maxTokens = 32768,
+  signal,
+  onDelta,
+}) {
+  const res = await fetch(`${trim(baseUrl)}/chat/completions`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -41,7 +55,7 @@ export async function streamChat({ apiKey, model, messages, temperature = 0.4, m
 
   if (!res.ok || !res.body) {
     const txt = await res.text().catch(() => "");
-    throw new Error(`Groq chat failed (${res.status}): ${txt || res.statusText}`);
+    throw new Error(`Chat request failed (${res.status}): ${txt || res.statusText}`);
   }
 
   const reader = res.body.getReader();
@@ -76,3 +90,50 @@ export async function streamChat({ apiKey, model, messages, temperature = 0.4, m
   }
   return full;
 }
+
+// Provider presets: base URL, a sensible free-tier TPM warning threshold,
+// a suggested default model, and where to get a key.
+export const PROVIDERS = {
+  groq: {
+    label: "Groq",
+    baseUrl: "https://api.groq.com/openai/v1",
+    tpmLimit: 8000,
+    defaultModel: "openai/gpt-oss-120b",
+    keyUrl: "https://console.groq.com/keys",
+  },
+  gemini: {
+    label: "Google Gemini (free: 250K TPM, 1M context)",
+    baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
+    tpmLimit: 250000,
+    defaultModel: "gemini-2.5-flash",
+    keyUrl: "https://aistudio.google.com/apikey",
+  },
+  cerebras: {
+    label: "Cerebras",
+    baseUrl: "https://api.cerebras.ai/v1",
+    tpmLimit: 60000,
+    defaultModel: "llama-3.3-70b",
+    keyUrl: "https://cloud.cerebras.ai/",
+  },
+  openrouter: {
+    label: "OpenRouter (:free models)",
+    baseUrl: "https://openrouter.ai/api/v1",
+    tpmLimit: 40000,
+    defaultModel: "",
+    keyUrl: "https://openrouter.ai/keys",
+  },
+  ollama: {
+    label: "Ollama (local, unlimited)",
+    baseUrl: "http://localhost:11434/v1",
+    tpmLimit: 1000000,
+    defaultModel: "llama3.1",
+    keyUrl: "https://ollama.com/download",
+  },
+  custom: {
+    label: "Custom (OpenAI-compatible)",
+    baseUrl: "",
+    tpmLimit: 100000,
+    defaultModel: "",
+    keyUrl: "",
+  },
+};

@@ -11,20 +11,28 @@
       <h1>JD Career Strategist — Settings</h1>
 
       <section class="card">
-        <h2>Groq API</h2>
+        <h2>LLM Provider</h2>
+
+        <label>Provider</label>
+        <select id="provider"></select>
+        <p class="hint" id="providerHint"></p>
+
+        <label>Base URL (OpenAI-compatible endpoint)</label>
+        <input type="text" id="baseUrl" placeholder="https://..." />
+
         <label>API Key</label>
         <div class="inline">
-          <input type="password" id="apiKey" placeholder="gsk_..." />
+          <input type="password" id="apiKey" placeholder="your provider key" />
           <button id="toggleKey" class="btn btn-ghost">Show</button>
         </div>
-        <p class="hint">Stored locally in your browser (<code>chrome.storage.local</code>). Never sent anywhere except Groq.</p>
+        <p class="hint">Stored locally in your browser (<code>chrome.storage.local</code>). Sent only to the provider you choose above.</p>
 
         <label>Model</label>
         <div class="inline">
           <select id="model"><option value="">— load models with your key —</option></select>
           <button id="loadModels" class="btn btn-ghost">Fetch models</button>
         </div>
-        <p class="hint" id="modelHint">Recommended: <code>openai/gpt-oss-120b</code> (large context, strong reasoning).</p>
+        <p class="hint" id="modelHint">Pick a provider above, add your key, then “Fetch models”.</p>
 
         <div class="grid2">
           <div>

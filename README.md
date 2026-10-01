@@ -28,10 +28,21 @@ all inside a Chrome **side panel**.
 
 Open **Settings** (gear icon in the panel, or the extension's options page):
 
-- **Groq API key** – paste your `gsk_...` key. Stored only in `chrome.storage.local` on your machine.
-- **Model** – click **Fetch models** to pull your live Groq catalog, then pick one.
-  Default/recommended: `openai/gpt-oss-120b` (large context, strong reasoning).
+- **Provider** – choose your LLM provider. Any OpenAI-compatible API works:
+  - **Google Gemini** — *recommended free option*: ~250,000 tokens/min and a 1M-token
+    context on the free tier (handles multiple resumes + JDs easily). Key: https://aistudio.google.com/apikey
+  - **Groq** — very fast, but the free tier is only ~8,000 TPM. Key: https://console.groq.com/keys
+  - **Cerebras**, **OpenRouter** (`:free` models), **Ollama** (local/unlimited), or **Custom** (any base URL).
+- **Base URL** – auto-filled from the provider preset; editable for custom endpoints.
+- **API key** – paste your provider key. Stored only in `chrome.storage.local` on your machine; sent only to that provider.
+- **Model** – click **Fetch models** to pull the live catalog, then pick one
+  (e.g. `gemini-2.5-flash` for Gemini, `openai/gpt-oss-120b` for Groq).
+- **TPM limit** – auto-set per provider; drives the pre-flight size warning in the panel.
 - **Max output tokens / Temperature** – defaults (32768 / 0.4) are fine for most runs.
+
+> **Hitting a "request too large" / rate-limit error?** Either send fewer inputs
+> (uncheck resumes in the 📄 panel, pick one JD) or switch to a higher-limit provider
+> like Google Gemini. The side panel shows a live token estimate so you can stay under your limit.
 
 ## Add your master resumes
 

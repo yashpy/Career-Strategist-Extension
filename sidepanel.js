@@ -150,7 +150,7 @@ async function removeResumeInline(name) {
 }
 
 async function refreshConfig() {
-  settings = await chrome.storage.local.get(["groqApiKey", "groqModel", "maxTokens", "temperature", "tpmLimit", "includedResumes"]);
+  settings = await chrome.storage.local.get(["groqApiKey", "groqModel", "maxTokens", "temperature", "tpmLimit", "includedResumes", "baseUrl"]);
   resumes = await loadAllResumes();
   tpmLimit = settings.tpmLimit || 8000;
 
@@ -165,7 +165,7 @@ async function refreshConfig() {
   includedResumes = new Set([...includedResumes].filter((n) => names.includes(n)));
 
   const problems = [];
-  if (!settings.groqApiKey) problems.push("Groq API key is not set");
+  if (!settings.groqApiKey) problems.push("API key is not set");
   if (!settings.groqModel) problems.push("No model selected");
   if (resumes.length === 0) problems.push("No master resumes loaded");
 
@@ -407,6 +407,7 @@ async function run() {
   try {
     full = await streamChat({
       apiKey: settings.groqApiKey,
+      baseUrl: settings.baseUrl,
       model: settings.groqModel,
       messages,
       temperature: settings.temperature ?? 0.4,
@@ -436,11 +437,11 @@ async function run() {
         const m = msg.match(/Requested (\d+)/i);
         const requested = m ? ` (this request ≈ ${Number(m[1]).toLocaleString()} tokens)` : "";
         box.innerHTML =
-          `<b>Request too large for your Groq tier${requested}.</b><br>` +
-          `Your free tier allows ~${tpmLimit.toLocaleString()} tokens/minute. Try:<br>` +
+          `<b>Request too large for your provider's current tier${requested}.</b><br>` +
+          `Your configured limit is ~${tpmLimit.toLocaleString()} tokens/minute. Try:<br>` +
           `• Include <b>one</b> resume (uncheck the others in “📄 Master resumes”).<br>` +
           `• Select <b>one</b> JD at a time.<br>` +
-          `• Or upgrade at <a href="https://console.groq.com/settings/billing" target="_blank">console.groq.com/settings/billing</a> for much higher limits.`;
+          `• Or switch provider in Settings — e.g. <b>Google Gemini</b>'s free tier allows ~250,000 TPM with a 1M-token context.`;
       } else {
         box.textContent = "Error: " + msg;
       }
