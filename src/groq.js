@@ -19,7 +19,13 @@ export async function listModels(apiKey, baseUrl = DEFAULT_BASE_URL) {
     .map((m) => m.id)
     // Gemini prefixes ids with "models/"; strip for display/use.
     .map((id) => id.replace(/^models\//, ""))
-    .filter((id) => !/whisper|tts|guard|embedding|aqa|imagen|veo/i.test(id))
+    // Hide non-text / specialized models that don't work as plain chat completions.
+    .filter(
+      (id) =>
+        !/whisper|tts|guard|embedding|aqa|imagen|veo|dall-?e|image|audio|live|transcribe|realtime|computer-use|deep-research|moderation|rerank|vision-only/i.test(
+          id
+        )
+    )
     .sort();
 }
 
