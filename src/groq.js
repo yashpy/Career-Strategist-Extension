@@ -111,7 +111,9 @@ export const PROVIDERS = {
     label: "Google Gemini (free: 250K TPM, 1M context)",
     baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai",
     tpmLimit: 250000,
-    defaultModel: "gemini-2.5-flash",
+    // Auto-updating alias → always a current, free-tier-eligible Flash model
+    // (avoids "model no longer available" 404s as generations roll over).
+    defaultModel: "gemini-flash-latest",
     keyUrl: "https://aistudio.google.com/apikey",
   },
   cerebras: {
