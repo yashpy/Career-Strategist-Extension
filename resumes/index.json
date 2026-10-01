@@ -1,0 +1,5 @@
+[
+  { "file": "SWE.tex", "name": "SWE", "role": "Software Engineer", "primary": true },
+  { "file": "DataEngineer.tex", "name": "DataEngineer", "role": "Data Engineer", "primary": true },
+  { "file": "12_MLEngineer.tex", "name": "12_MLEngineer", "role": "ML Engineer", "primary": true }
+]

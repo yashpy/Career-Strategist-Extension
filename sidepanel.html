@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JD Career Strategist</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <span class="brand-dot"></span>
+        <h1>JD Career Strategist</h1>
+      </div>
+      <button id="openOptions" class="icon-btn" title="Settings">⚙</button>
+    </header>
+
+    <div id="setupBanner" class="banner hidden"></div>
+
+    <details id="resumePanel" class="resume-panel">
+      <summary>📄 Master resumes (<span id="resumeCount">0</span>)</summary>
+      <div class="resume-body">
+        <div id="spResumeList" class="sp-resume-list"></div>
+        <div class="sp-add">
+          <div class="sp-add-row">
+            <input id="spName" placeholder="Name (e.g. SWE)" />
+            <input id="spRole" placeholder="Role (e.g. Software Engineer)" />
+          </div>
+          <label class="toggle sp-primary"><input type="checkbox" id="spPrimary" /> <span>Mark as primary base</span></label>
+          <textarea id="spTex" rows="5" placeholder="Paste the resume's full .tex source here…"></textarea>
+          <button id="spAdd" class="btn btn-secondary">＋ Save resume</button>
+        </div>
+      </div>
+    </details>
+
+    <section class="controls">
+      <div class="row">
+        <button id="scanBtn" class="btn btn-secondary">↻ Scan open tabs</button>
+        <label class="toggle">
+          <input type="checkbox" id="onlyJobs" checked />
+          <span>Likely jobs only</span>
+        </label>
+      </div>
+      <div class="row small muted" id="statusLine">Click “Scan open tabs” to begin.</div>
+    </section>
+
+    <section id="tabsSection" class="tabs-section">
+      <div class="tabs-header">
+        <span id="tabsCount" class="muted small"></span>
+        <div class="tabs-actions">
+          <button id="addManual" class="link-btn">+ Manual JD</button>
+          <button id="selectAll" class="link-btn">Select all</button>
+          <button id="selectNone" class="link-btn">Clear</button>
+        </div>
+      </div>
+      <ul id="tabList" class="tab-list"></ul>
+    </section>
+
+    <section class="run-section">
+      <button id="runBtn" class="btn btn-primary" disabled>⚡ Parse &amp; Evaluate</button>
+      <button id="stopBtn" class="btn btn-danger hidden">■ Stop</button>
+    </section>
+
+    <section id="resultsSection" class="results-section hidden">
+      <div class="results-header">
+        <h2>Results</h2>
+        <div class="results-actions">
+          <button id="copyBtn" class="link-btn">Copy analysis</button>
+          <button id="clearResults" class="link-btn">Clear</button>
+        </div>
+      </div>
+      <div id="filesBar" class="files-bar"></div>
+      <div id="output" class="output"></div>
+    </section>
+
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>
