@@ -157,6 +157,9 @@ body {
 .sp-include input { accent-color: var(--primary); }
 
 .run-section { padding: 8px 14px; display: flex; gap: 8px; }
+.run-hint { padding: 0 14px; font-size: 11.5px; color: #fcd9a0; }
+.run-hint a { color: var(--primary-2); cursor: pointer; text-decoration: underline; }
+.run-hint:empty { display: none; }
 
 .results-section { padding: 6px 14px 24px; border-top: 1px solid var(--border); margin-top: 6px; }
 .results-header { display: flex; justify-content: space-between; align-items: center; }

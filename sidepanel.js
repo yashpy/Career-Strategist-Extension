@@ -321,9 +321,27 @@ function hasUsableSelection() {
 }
 
 function updateRunState() {
-  const ready =
-    settings.groqApiKey && settings.groqModel && selectedResumes().length > 0 && hasUsableSelection();
+  const reasons = [];
+  if (!settings.groqApiKey) reasons.push("add an API key in Settings");
+  if (!settings.groqModel) reasons.push("pick a model in Settings (Fetch models)");
+  if (resumes.length === 0) reasons.push("add a resume in the 📄 panel");
+  else if (selectedResumes().length === 0) reasons.push("tick at least one resume in the 📄 panel");
+  if (!hasUsableSelection()) reasons.push("select a JD tab (or add a Manual JD)");
+
+  const ready = reasons.length === 0;
   runBtn.disabled = !ready;
+  runBtn.title = ready ? "Parse & Evaluate" : "Can't run yet";
+
+  const hint = $("runHint");
+  if (ready) {
+    hint.textContent = "";
+  } else {
+    const needsSettings = !settings.groqApiKey || !settings.groqModel;
+    const openLink = needsSettings ? ' <a id="runHintOpts">Open Settings</a>' : "";
+    hint.innerHTML = "To run, " + reasons.join(" · ") + "." + openLink;
+    const l = $("runHintOpts");
+    if (l) l.addEventListener("click", () => chrome.runtime.openOptionsPage());
+  }
   updateEstimate();
 }
 
