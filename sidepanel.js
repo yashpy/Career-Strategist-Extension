@@ -26,6 +26,11 @@ let abortController = null;
 let manualText = new Map(); // id(string) -> pasted JD text (real-tab override or manual entry)
 let manualEntries = []; // [{ id, title }] synthetic JDs not tied to a tab
 let manualSeq = 0;
+let includedResumes = null; // Set<name> of resumes to send; null = not yet loaded
+let tpmLimit = 8000;
+
+const estimateEl = () => $("estimate");
+const approxTokens = (chars) => Math.ceil(chars / 4); // rough chars→tokens heuristic
 
 // ---------- Init ----------
 init();
@@ -60,8 +65,20 @@ async function renderResumePanel() {
     const row = document.createElement("div");
     row.className = "sp-resume-row";
     const primary = r.primary ? '<span class="sp-pill primary">primary</span>' : "";
-    row.innerHTML = `<div>${escape(r.name)}${primary}<span class="sp-pill ${r.source}">${r.source}</span>
-      <div class="tag">${escape(r.role || "general")} · ${r.tex.length.toLocaleString()} chars</div></div>`;
+    const checked = includedResumes.has(r.name) ? "checked" : "";
+    row.innerHTML = `
+      <label class="sp-include">
+        <input type="checkbox" class="inc" data-name="${escape(r.name)}" ${checked} />
+        <div>${escape(r.name)}${primary}<span class="sp-pill ${r.source}">${r.source}</span>
+          <div class="tag">${escape(r.role || "general")} · ~${approxTokens(r.tex.length).toLocaleString()} tok</div>
+        </div>
+      </label>`;
+    row.querySelector(".inc").addEventListener("change", async (e) => {
+      if (e.target.checked) includedResumes.add(r.name);
+      else includedResumes.delete(r.name);
+      await chrome.storage.local.set({ includedResumes: [...includedResumes] });
+      updateEstimate();
+    });
     if (r.source === "user") {
       const del = document.createElement("button");
       del.className = "sp-del";
@@ -71,6 +88,39 @@ async function renderResumePanel() {
     }
     list.appendChild(row);
   }
+  updateEstimate();
+}
+
+// Rough pre-flight token estimate so the user can stay under their TPM limit.
+function selectedResumes() {
+  return resumes.filter((r) => includedResumes && includedResumes.has(r.name));
+}
+
+function pastedJdChars() {
+  // Known JD text we can measure now (pasted/manual). Scraped tabs are unknown until run.
+  let chars = 0;
+  let scrapedTabs = 0;
+  for (const e of selectedEntries()) {
+    const pasted = (manualText.get(e.id) || "").trim();
+    if (pasted) chars += pasted.length;
+    else if (!e.manual) scrapedTabs += 1;
+  }
+  return { chars, scrapedTabs };
+}
+
+function updateEstimate() {
+  const el = estimateEl();
+  if (!el) return;
+  const promptChars = CAREER_STRATEGIST_PROMPT.length;
+  const resumeChars = selectedResumes().reduce((n, r) => n + r.tex.length, 0);
+  const jd = pastedJdChars();
+  const known = approxTokens(promptChars + resumeChars + jd.chars);
+  const scrapedNote = jd.scrapedTabs > 0 ? ` + ${jd.scrapedTabs} scraped tab(s) (size unknown until run)` : "";
+  const over = known > tpmLimit;
+  el.className = "estimate" + (over ? " over" : "");
+  el.innerHTML = over
+    ? `⚠ Est. input <b>~${known.toLocaleString()}</b> tok${scrapedNote} — exceeds your ${tpmLimit.toLocaleString()} TPM limit. Include fewer resumes/JDs, or upgrade Groq tier.`
+    : `Est. input <b>~${known.toLocaleString()}</b> tok${scrapedNote} (limit ${tpmLimit.toLocaleString()} TPM).`;
 }
 
 async function addResumeInline() {
@@ -100,8 +150,19 @@ async function removeResumeInline(name) {
 }
 
 async function refreshConfig() {
-  settings = await chrome.storage.local.get(["groqApiKey", "groqModel", "maxTokens", "temperature"]);
+  settings = await chrome.storage.local.get(["groqApiKey", "groqModel", "maxTokens", "temperature", "tpmLimit", "includedResumes"]);
   resumes = await loadAllResumes();
+  tpmLimit = settings.tpmLimit || 8000;
+
+  // Which resumes to include in the request. Default: everything.
+  const names = resumes.map((r) => r.name);
+  if (!includedResumes) {
+    includedResumes = new Set(
+      Array.isArray(settings.includedResumes) ? settings.includedResumes.filter((n) => names.includes(n)) : names
+    );
+  }
+  // Drop any stored names that no longer exist.
+  includedResumes = new Set([...includedResumes].filter((n) => names.includes(n)));
 
   const problems = [];
   if (!settings.groqApiKey) problems.push("Groq API key is not set");
@@ -260,8 +321,10 @@ function hasUsableSelection() {
 }
 
 function updateRunState() {
-  const ready = settings.groqApiKey && settings.groqModel && resumes.length > 0 && hasUsableSelection();
+  const ready =
+    settings.groqApiKey && settings.groqModel && selectedResumes().length > 0 && hasUsableSelection();
   runBtn.disabled = !ready;
+  updateEstimate();
 }
 
 // ---------- Run ----------
@@ -325,10 +388,11 @@ async function run() {
     return;
   }
 
-  // 2) Build the conversation.
+  // 2) Build the conversation (only the resumes the user chose to include).
+  const resumesToSend = selectedResumes();
   const messages = [
     { role: "system", content: CAREER_STRATEGIST_PROMPT },
-    { role: "system", content: "MASTER RESUMES:\n\n" + buildResumeContext(resumes) },
+    { role: "system", content: "MASTER RESUMES:\n\n" + buildResumeContext(resumesToSend) },
     { role: "user", content: buildJobsMessage(jobs) },
   ];
 
@@ -367,7 +431,19 @@ async function run() {
       liveEl.classList.remove("cursor");
       const box = document.createElement("div");
       box.className = "error-box";
-      box.textContent = "Error: " + err.message;
+      const msg = err.message || "";
+      if (/\b413\b|rate_limit|tokens per minute|TPM|too large/i.test(msg)) {
+        const m = msg.match(/Requested (\d+)/i);
+        const requested = m ? ` (this request ≈ ${Number(m[1]).toLocaleString()} tokens)` : "";
+        box.innerHTML =
+          `<b>Request too large for your Groq tier${requested}.</b><br>` +
+          `Your free tier allows ~${tpmLimit.toLocaleString()} tokens/minute. Try:<br>` +
+          `• Include <b>one</b> resume (uncheck the others in “📄 Master resumes”).<br>` +
+          `• Select <b>one</b> JD at a time.<br>` +
+          `• Or upgrade at <a href="https://console.groq.com/settings/billing" target="_blank">console.groq.com/settings/billing</a> for much higher limits.`;
+      } else {
+        box.textContent = "Error: " + msg;
+      }
       output.appendChild(box);
       statusLine.textContent = "Failed.";
     }

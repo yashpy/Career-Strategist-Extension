@@ -7,10 +7,11 @@ const PREFERRED_DEFAULT = "openai/gpt-oss-120b";
 init();
 
 async function init() {
-  const s = await chrome.storage.local.get(["groqApiKey", "groqModel", "maxTokens", "temperature"]);
+  const s = await chrome.storage.local.get(["groqApiKey", "groqModel", "maxTokens", "temperature", "tpmLimit"]);
   if (s.groqApiKey) $("apiKey").value = s.groqApiKey;
   if (s.maxTokens) $("maxTokens").value = s.maxTokens;
   if (s.temperature != null) $("temperature").value = s.temperature;
+  if (s.tpmLimit) $("tpmLimit").value = s.tpmLimit;
   if (s.groqModel) {
     const opt = document.createElement("option");
     opt.value = s.groqModel;
@@ -72,6 +73,7 @@ async function saveSettings() {
     groqModel: $("model").value,
     maxTokens: Number($("maxTokens").value) || 32768,
     temperature: Number($("temperature").value),
+    tpmLimit: Number($("tpmLimit").value) || 8000,
   });
   const msg = $("savedMsg");
   msg.classList.remove("hidden");

@@ -150,6 +150,12 @@ body {
 .jd-paste::placeholder { color: var(--muted); }
 .pasted-flag { font-size: 10px; color: #86efac; margin-left: 6px; }
 
+.estimate { padding: 2px 14px 0; font-size: 11px; color: var(--muted); }
+.estimate.over { color: #fca5a5; }
+.estimate b { color: var(--text); }
+.sp-include { display: flex; align-items: center; gap: 6px; }
+.sp-include input { accent-color: var(--primary); }
+
 .run-section { padding: 8px 14px; display: flex; gap: 8px; }
 
 .results-section { padding: 6px 14px 24px; border-top: 1px solid var(--border); margin-top: 6px; }
